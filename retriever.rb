@@ -7,17 +7,20 @@ require 'logger'
   class NilSpreadsheetKey < RuntimeError; end
   class NilCoordinates < RuntimeError; end
   class SpreadsheetNotLoaded < RuntimeError; end
+  class AliasNotFound < RuntimeError; end
   class XNotFound < RuntimeError; end
   class YNotFound < RuntimeError; end
     
 
   class GoldenRetriever
     
-    
+    SPREADSHEET_ALIAS = {'test1' => 'p38-cEwIpu6U2N1uY1lh5TA'}
     
     def initialize(spreadsheet_key = nil)
       raise NilSpreadsheetKey if spreadsheet_key.nil?
-      @spreadsheet_key = spreadsheet_key
+      
+      @spreadsheet_key = resolve_alias(spreadsheet_key)
+      
       @log = Logger.new('./retriever.log') 
       
     end
@@ -53,7 +56,13 @@ require 'logger'
       
     end
   
+  
     private
+    
+    def resolve_alias(spreadsheet_alias)
+      raise AliasNotFound unless SPREADSHEET_ALIAS.has_key?(spreadsheet_alias)
+      SPREADSHEET_ALIAS[spreadsheet_alias]
+    end
   
     def get_spreadsheet
       x1 = Google.new(@spreadsheet_key)
@@ -66,7 +75,7 @@ require 'logger'
 
   class GoldenRetrieverTest < Test::Unit::TestCase
     
-    SPREADSHEET_KEY = 'p38-cEwIpu6U2N1uY1lh5TA'
+    SPREADSHEET_KEY = 'test1'
 
     def test_should_require_spreadsheet_key
       assert_raise NilSpreadsheetKey do
@@ -104,6 +113,18 @@ require 'logger'
         assert_equal v, r, "Coords: #{coord}"
       end
       
+    end
+    
+    def test_should_require_valid_alias_for_spreadsheet
+      assert_raise AliasNotFound do
+        g = GoldenRetriever.new('foo') 
+      end
+    end
+    
+    def test_should_resolve_valid_alias
+      assert_nothing_raised  do
+        g = GoldenRetriever.new('test1')
+      end
     end
     
     def do_mock
